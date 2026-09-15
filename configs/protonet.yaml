@@ -1,0 +1,329 @@
+# ═══════════════════════════════════════════════════════════════════
+# Nanobio Pipeline Configuration
+# ═══════════════════════════════════════════════════════════════════
+# All parameters documented in nanobio/config.py dataclasses.
+# Toggle modules via models.run_mode: all | classical | baseline_dl | protonet | sota
+
+data_root: "E:/NTU/Existing_Modular/data"
+project_root: "./"
+supported_extensions: [".dat"]
+data_conversion: false
+random_seed: 42
+window_size: 1024
+stride: 512
+
+# ─────────────────────────────────────────────────────────────────
+# Sampling & Downsampling
+# ─────────────────────────────────────────────────────────────────
+sampling:
+  original_rate_hz: 1000000
+  target_rates_hz: [50000, 10000, 1000, 100, 10, 2]
+  model_input_rate_hz: 50000          # GAP-001: Was 10000, now 50000
+  gaussian_lpf_enabled: true          # GAP-002: Post-resampling Gaussian LPF
+  gaussian_lpf_cutoff_hz: 10000       # GAP-002: 10 kHz cutoff (−3 dB)
+
+# ─────────────────────────────────────────────────────────────────
+# Baseline Estimation
+# ─────────────────────────────────────────────────────────────────
+baseline:
+  method: rolling_median          # auto | rolling_median | constant | linear | savgol
+  window_seconds: 1.0
+  poly_order: 3
+  savgol_window: 501
+  save_visualizations: true
+  max_files_visualized: 20
+  compute_baseline_range: true
+  compute_residual_std: true
+  show_flags_in_plot_annotation: true
+  auto_candidates:
+    - constant
+    - linear
+    - rolling_median
+    - savgol
+  event_sigma: 5.0
+  log_selection_details: true
+
+# ─────────────────────────────────────────────────────────────────
+# Detrending
+# ─────────────────────────────────────────────────────────────────
+detrend:
+  enabled: true
+  method: subtract_baseline       # subtract_baseline | mean_center | linear | none
+
+# ─────────────────────────────────────────────────────────────────
+# Train / Val / Test Split
+# ─────────────────────────────────────────────────────────────────
+split:
+  train_ratio: 0.70
+  val_ratio: 0.15
+  test_ratio: 0.15
+  stratify: true
+  group_aware: false              # Set true + group_pattern to prevent device leakage
+  group_pattern: null             # e.g. "([A-Za-z]{1,5}\\d{1,3}[_-][A-Za-z0-9]+)"
+  seed: 42
+  links_enabled: true
+  links_dir: ""
+  link_mode: auto                 # auto | hardlink | symlink | copy
+  verify_md5: false
+  purge_on_change: true
+  use_npz_cache: false
+  force_purge_split_tree: true
+
+# ─────────────────────────────────────────────────────────────────
+# Segmentation / Windowing
+# ─────────────────────────────────────────────────────────────────
+segment:
+  segment_length_samples: 1024
+  stride_samples: 512
+  normalize_per_segment: true
+
+# ─────────────────────────────────────────────────────────────────
+# Model Selection
+# ─────────────────────────────────────────────────────────────────
+models:
+  run_mode: all                   # all | classical | baseline_dl | protonet | sota
+  classical_enabled: true
+  classical_models:
+    - RandomForest
+    - ExtraTrees
+    - XGBoost
+    - LogisticRegression
+    - SVM-RBF
+  baseline_dl_enabled: true
+  baseline_dl_models:
+    - ResNet1D
+    - TCN
+    - InceptionTime
+  protonet_enabled: true
+  advanced_enabled: false
+  vae_enabled: false
+  sota_enabled: true
+  dl_overfit_gate: true
+
+# ─────────────────────────────────────────────────────────────────
+# ProtoNet (Hierarchical Attention Prototypical Network)
+# ─────────────────────────────────────────────────────────────────
+protonet:
+  enabled: true
+  embed_dim: 128
+  metric_dim: 64
+  attention_hidden: 64
+  hybrid_features_enabled: true
+  n_way: 3
+  k_shot: 3
+  q_query: 2
+  episodes_per_epoch: 80
+  num_epochs: 40
+  learning_rate: 0.001
+  early_stopping_patience: 10
+
+# ─────────────────────────────────────────────────────────────────
+# DL Training Hyperparameters
+# ─────────────────────────────────────────────────────────────────
+training:
+  batch_size: 128
+  num_epochs: 30
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  early_stopping_patience: 7
+  use_class_weights: true
+  use_weighted_sampler: true
+  label_smoothing: 0.1
+  gradient_clip_norm: 1.0
+  loss_type: cross_entropy        # cross_entropy | focal
+  focal_gamma: 2.0
+  best_checkpoint_metric: val_loss  # val_loss | val_accuracy | val_f1_macro
+
+# ─────────────────────────────────────────────────────────────────
+# SOTA Benchmarks (optional dependencies)
+# ─────────────────────────────────────────────────────────────────
+sota:
+  enabled: true
+  run_timesnet: true
+  run_minirocket: true
+  run_patchtst: false
+  run_tabpfn_window: true
+  run_tabpfn_file: true
+  timesnet_d_model: 32
+  timesnet_d_ff: 64
+  timesnet_top_k: 3
+  timesnet_e_layers: 2
+  timesnet_num_kernels: 6
+  timesnet_epochs: 25
+  tabpfn_max_train: 10000
+  tabpfn_max_features: 500
+
+# ─────────────────────────────────────────────────────────────────
+# Digital Filters
+# ─────────────────────────────────────────────────────────────────
+filters:
+  lpf_enabled: true
+  gaussian_enabled: true
+  lpf_order: 8
+
+# ─────────────────────────────────────────────────────────────────
+# Quality Control
+# ─────────────────────────────────────────────────────────────────
+quality:
+  max_clip_fraction: 0.05
+  max_baseline_drift_fraction: 0.5
+  min_variance: 1.0e-12
+  impossible_value_min: -1e9
+  impossible_value_max: 1e9
+  max_noise_std_ratio: 0.5
+  verify_sampling_rate: true
+  save_qc_report: true
+
+# ─────────────────────────────────────────────────────────────────
+# Event Detection (Ton / Toff)
+# ─────────────────────────────────────────────────────────────────
+events:
+  enabled: true
+  threshold_sigma: 5.0
+  min_duration_ms: 0.1
+  max_duration_ms: 500.0
+  merge_gap_ms: 0.005
+
+# ─────────────────────────────────────────────────────────────────
+# ML Visualizations
+# ─────────────────────────────────────────────────────────────────
+ml_viz:
+  enabled: true
+  save_confusion_matrix: true
+  save_roc: true
+  save_pr: true
+  save_calibration: true
+  save_probability_dist: true
+  save_classwise_csv: true
+  save_training_curves: true
+
+# ─────────────────────────────────────────────────────────────────
+# Experiment Tracking & Reproducibility
+# ─────────────────────────────────────────────────────────────────
+tracking:
+  enabled: true
+  save_environment: true
+  save_feature_importance: true
+  save_per_file_preprocessing: true
+
+# ─────────────────────────────────────────────────────────────────
+# Figure Styling
+# ─────────────────────────────────────────────────────────────────
+visualization:
+  dpi: 150
+  fig_format: png
+  font_scale: 1.2
+  style: whitegrid
+  baseline_color: "#000000"
+  signal_color: "#c92020"
+
+# ─────────────────────────────────────────────────────────────────
+# Real-Time Deployment (disabled by default)
+# ─────────────────────────────────────────────────────────────────
+deployment:
+  enabled: false
+  causal_filter: true
+  buffer_size_samples: 1024
+  max_latency_ms: 50.0
+  confidence_threshold: 0.8
+
+# ─────────────────────────────────────────────────────────────────
+# PDF & Excel Report Generation (GAP-009, GAP-011)
+# ─────────────────────────────────────────────────────────────────
+report:
+  generate_pdf: true
+  generate_excel: true
+  pdf_title: "Signal/Data Analysis - (Research) Report"
+  pdf_author: "Krishan"
+  excel_filename: ""                  # empty = auto from experiment_id
+  embed_plots_in_excel: true
+  include_fold_results: true
+  include_reproducibility: true
+
+# ═══════════════════════════════════════════════════════════════════
+# RESEARCH FRAMEWORK (SSL + Few-Shot + Semi-Supervised)
+# ═══════════════════════════════════════════════════════════════════
+# Disabled by default. Set research.enabled: true to activate
+# Phases 6-8 after the standard pipeline completes.
+#
+# Usage:
+#   1. Set research.enabled: true
+#   2. Enable the sub-modules you want (ssl, few_shot, pseudo_label)
+#   3. Run: python main.py --config configs/protonet.yaml
+#
+# The research phases reuse the same data, splits, and preprocessing
+# from Phases 1-3. No data is reloaded.
+# ═══════════════════════════════════════════════════════════════════
+
+research:
+  enabled: true                  # Master toggle for all research phases
+  seeds: [42, 123, 456]          # Multiple seeds for statistical rigor
+  label_budgets: [1, 2, 5, 10, 25, 50]  # Shots per class to evaluate
+
+  # ── Self-Supervised Representation Learning ──
+  ssl:
+    enabled: true
+    method: contrastive           # contrastive | autoencoder
+    epochs: 50
+    batch_size: 256
+    learning_rate: 0.0003
+    weight_decay: 0.00001
+    temperature: 0.07             # InfoNCE temperature (lower = sharper)
+    projection_dim: 64            # Projection head output (discarded after SSL)
+    encoder:
+      encoder_type: tcn           # tcn | resnet | cnn
+      embedding_dim: 128          # Final representation dimension
+      hidden_dim: 64
+      num_layers: 4
+      kernel_size: 3
+      dropout: 0.1
+    augmentation:
+      jitter_sigma: 0.03          # Additive Gaussian noise
+      scaling_sigma: 0.1          # Amplitude scaling
+      magnitude_warp_sigma: 0.2
+      time_warp_sigma: 0.2
+      crop_ratio: [0.8, 1.0]      # Random crop range
+      mask_ratio: 0.15            # Fraction of timesteps to zero-mask
+      permutation_enabled: false  # OFF: destroys temporal event structure
+      time_shift_fraction: 0.05
+      enabled_transforms:
+        - jitter
+        - scaling
+        - crop
+        - mask
+
+  # ── Few-Shot Prototype Evaluation ──
+  few_shot:
+    enabled: true
+    n_way: 2                      # Clamped to actual num_classes at runtime
+    k_shot: 5                     # Overridden by label_budgets during sweep
+    q_query: 15                   # Query examples per class per episode
+    distance_metric: euclidean    # euclidean | cosine
+    num_eval_episodes: 200        # More episodes = tighter confidence intervals
+    normalize_embeddings: true    # L2-normalize before distance computation
+
+  # ── Confidence-Aware Pseudo-Labeling ──
+  pseudo_label:
+    enabled: true
+    confidence_threshold: 0.90    # Min softmax probability to accept
+    consistency_enabled: true     # Check prediction stability under augmentation
+    consistency_num_views: 5      # Number of augmented views per sample
+    consistency_agreement: 0.8    # Fraction of views that must agree
+    max_pseudo_per_class: 50      # Per-class cap (prevents class imbalance runaway)
+    max_iterations: 3             # Pseudo-label → retrain → repeat cycles
+    distance_filter_enabled: true # Reject samples far from their prototype
+    distance_percentile: 95.0     # Max allowed distance (percentile of support)
+    class_balance_enabled: true   # Enforce per-class pseudo-label quotas
+
+  # ── Novelty / Unknown-Class Detection ──
+  novelty:
+    enabled: false
+    distance_threshold: null      # null = auto-calibrate from validation set
+    auto_percentile: 95.0         # Percentile for automatic threshold
+
+  # ── Clustering Diagnostics ──
+  clustering:
+    enabled: false
+    algorithms:
+      - kmeans
+    n_clusters: 2                 # Should match expected number of classes

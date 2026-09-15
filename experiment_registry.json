@@ -1,0 +1,21 @@
+[
+  {
+    "experiment_id": "exp_20260907_130438",
+    "registered_at": "2026-09-07T13:04:38.302938",
+    "config_hash": "5111494de79d",
+    "artifacts": {
+      "figures": "/data/project/figures/exp_20260907_130438",
+      "reports": "/data/project/reports/exp_20260907_130438",
+      "models": "/data/project/models/exp_20260907_130438",
+      "outputs": "/data/project/outputs/exp_20260907_130438"
+    },
+    "results": {
+      "n_models_run": 17,
+      "best_model": "RandomForest [file-level]",
+      "best_f1_weighted": 1.0,
+      "best_accuracy": 1.0,
+      "leaderboard_csv": "/data/project/reports/exp_20260907_130438/20260907_130438_leaderboard.csv"
+    },
+    "updated_at": "2026-09-07T16:40:39.144988"
+  }
+]
